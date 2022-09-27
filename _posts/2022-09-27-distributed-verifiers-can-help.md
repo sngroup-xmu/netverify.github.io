@@ -29,7 +29,7 @@ TODO
 
 ## Summary
 
-Current DPV tools employ a centralized architecture, this design faces scalability issues in large networks, such as maintaning a reliable, low-latancy management network, performance bottleneck and single point of failure. To tackle the scalability challenge of DPV, we design Coral, a distributed DPV framework to achieve scalable DPV by decomposing verification to lightweight on-device counting tasks. Coral consists of (1) a declarative specification language,(2) a verification planner decompose global verification into lightweight on-device couting tasks, and (3) a distributed verification messaging(DVM) protocol  enables efficient and distributed computing among on-device verifiers.Extensive experiments demonstrate the benefits and feasibility of Coral. 
+Current DPV tools employ a centralized architecture, however, this design faces scalability issues in large networks, such as maintaining a reliable, low-latency management network, performance bottleneck, and single point of failure. To tackle the scalability challenge of DPV, we design Coral, a distributed DPV framework to achieve scalable DPV by decomposing verification to lightweight on-device counting tasks. Coral consists of (1) a declarative specification language,(2) a verification planner decomposing global verification into lightweight on-device counting tasks, and (3) a distributed verification messaging(DVM) protocol that enables efficient and distributed computing among on-device verifiers. Extensive experiments demonstrate the benefits and feasibility of Coral. 
 
 ## References
 

@@ -47,15 +47,24 @@ To demonstrate the basic workflow of Coral, let's take a look at a concrete exam
 
 * Requirement Specification 
 
-Firstly,the operater use a declarative language to specify verification requirements. The program of the example requirement is described as:
+The operater use a declarative language to specify verification requirements. The program of the example requirement is described as:
 (dstIP = 10.0.0.0/23, [S], S .* W .* D and loop_free, "exist >=1")
 ,where loop_free is a shortcut in the language for a regular expression that accepts no path with a loop. It specifies that when any p destined to 10.0.0.0/23 enters from S, at least 1 copy of it will be delivered to D along a simple path waypointing W.
+
+The network data plane are as follows:
+<img src="/assets/images/Coral-dataplane.png" alt="Coral-Topology" width="523" height="500"/>
+
+* From Requirement and Topology to DVNet
 
 Given a requirement, the Coral planner employs a data structure called DVNet to decompose the DPV problem into small on-device verification tasks, and distribute them to on-device verifiers for distributed execution. From requirement and topology to DVNet. The planner first leverages the automata theory [[8]](#automata-theory) to take the product of the regular expression path_exp in the requirement and the topology, and get a DAG called DVNet. A DVNet compactly represents all paths in the topology that match the pattern path_exp.The following picture gives the computed DVNet in our example. 
 
 <img src="/assets/images/Coral-DVNet.png" alt="Coral-DVNet" width="523" height="400"/>
 
 Note the devices in the network and the nodes in DVNet have a 1-to-many mapping. For each node u in DVNet, we assign a unique identifier, which is a concatenation of u.dev and an integer. For example, device C in the network is mapped to two nodes C1 and C2 in DVNet, because the regular expression allows packets to reach D via [C,W,D] or [W,C,D].
+
+* From Verification in Network to Counting in DVNet
+
+Each node u takes as input (1) the data plane of u.dev and (2) for different p in packet_space, the number of copies that can be delivered from each of u’s downstream neighbors to the destination, along DVNet, by the network data plane, to compute the number of copies that can be delivered from u to the destination along DVNet by the network data plane. In the end, the source node of DVNet computes the final result of the counting problem.
 
 ## Summary
 

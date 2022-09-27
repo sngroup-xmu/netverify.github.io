@@ -41,13 +41,15 @@ traversal along *DVNet*. In its turn, each node in *DVNet* takes as input the da
 
 ## Example 
 
-To demonstrate the basic workflow of Coral, let's take a look at a concrete example. We consider the network in the following picture and the requirement: all packets entering the network from S with a destination IP in 10.0.0.0/23 must be delivered to D via a simple path passing W.Coral verifies this requirement in three phases.
+To demonstrate the basic workflow of Coral, let's take a look at a concrete example. We consider the network in the following picture and the requirement: all packets entering the network from S with a destination IP in 10.0.0.0/23 must be delivered to D via a simple path passing W.
 
 <img src="/assets/images/Coral-topology.png" alt="Coral-Topology" width="523" height="215"/>
 
-Firstly,the operater use a declarative language to specify verification requirements. The following picture gives the program of the example requirement, where loop_free is a shortcut in the language for a regular expression that accepts no path with a loop. It specifies that when any p destined to 10.0.0.0/23 enters from S, at least 1 copy of it will be delivered to D along a simple path waypointing W.
-
+Firstly,the operater use a declarative language to specify verification requirements. The program of the example requirement is described as:
 (dstIP = 10.0.0.0/23, [S], S .* W .* D and loop_free, "exist >=1")
+where loop_free is a shortcut in the language for a regular expression that accepts no path with a loop. It specifies that when any p destined to 10.0.0.0/23 enters from S, at least 1 copy of it will be delivered to D along a simple path waypointing W.
+
+
 
 ## Summary
 

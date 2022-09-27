@@ -45,13 +45,13 @@ To demonstrate the basic workflow of Coral, let's take a look at a concrete exam
 
 <img src="/assets/images/Coral-topology.png" alt="Coral-Topology" width="523" height="215"/>
 
-** Requirement Specification **
+* Requirement Specification 
 
 Firstly,the operater use a declarative language to specify verification requirements. The program of the example requirement is described as:
 (dstIP = 10.0.0.0/23, [S], S .* W .* D and loop_free, "exist >=1")
 ,where loop_free is a shortcut in the language for a regular expression that accepts no path with a loop. It specifies that when any p destined to 10.0.0.0/23 enters from S, at least 1 copy of it will be delivered to D along a simple path waypointing W.
 
-Given a requirement, the Coral planner employs a data structure called DVNet to decompose the DPV problem into small on-device verification tasks, and distribute them to on-device verifiers for distributed execution. From requirement and topology to DVNet. The planner first leverages the automata theory [56] to take the product of the regular expression path_exp in the requirement and the topology, and get a DAG called DVNet. A DVNet compactly represents all paths in the topology that match the pattern path_exp.The following picture gives the computed DVNet in our example. 
+Given a requirement, the Coral planner employs a data structure called DVNet to decompose the DPV problem into small on-device verification tasks, and distribute them to on-device verifiers for distributed execution. From requirement and topology to DVNet. The planner first leverages the automata theory [[8]](#automata-theory) to take the product of the regular expression path_exp in the requirement and the topology, and get a DAG called DVNet. A DVNet compactly represents all paths in the topology that match the pattern path_exp.The following picture gives the computed DVNet in our example. 
 
 <img src="/assets/images/Coral-DVNet.png" alt="Coral-DVNet" width="523" height="215"/>
 
@@ -79,4 +79,6 @@ Validating datacenters at scale. In Proceedings of the ACM Special Interest Grou
 <a name="ddNF"></a>[6] Nikolaj Bjørner, Garvit Juniwal, Ratul Mahajan, Sanjit A Seshia, and George Varghese. Ddnf: An efficient data structure for header spaces. In Haifa Verification Conference, pages 49–64. Springer, 2016.
 		
 <a name="PEC"></a>[7] Alex Horn, Ali Kheradmand, and Mukul R Prasad. A precise and expressive lattice-theoretical framework for efficient network verification. In 2019 IEEE 27th In- ternational Conference on Network Protocols (ICNP),pages 1–12. IEEE, 2019.
+
+<a name="automata-theory"></a>[8] Harry R Lewis and Christos H Papadimitriou. Elements of the theory of computation. ACM SIGACT News, 29(3):62–78, 1998.
 

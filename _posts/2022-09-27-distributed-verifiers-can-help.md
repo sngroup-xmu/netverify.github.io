@@ -30,6 +30,7 @@ TODO
 ## Example 
 
 To demonstrate the basic workflow of Coral, let's take a look at a concrete example. We consider the network in the following picture and the requirement: all packets entering the network from S with a destination IP in 10.0.0.0/23 must be delivered to D via a simple path passing W.
+
 <img src="/assets/images/Coral-topology.png" alt="Coral-Topology" width="523" height="215"/>
 
 ## Summary

@@ -43,7 +43,7 @@ traversal along *DVNet*. In its turn, each node in *DVNet* takes as input the da
 
 To demonstrate the basic workflow of Coral, let's take a look at a concrete example. We consider the network in the following picture and the requirement: all packets entering the network from S with a destination IP in 10.0.0.0/23 must be delivered to D via a simple path passing W.
 
-<img src="/assets/images/Coral-topology.png" alt="Coral-Topology" width="523" height="215"/>
+<img src="/assets/images/Coral-topology.png" alt="Coral-Topology" width="523" height="250"/>
 
 * Requirement Specification 
 
@@ -53,7 +53,7 @@ Firstly,the operater use a declarative language to specify verification requirem
 
 Given a requirement, the Coral planner employs a data structure called DVNet to decompose the DPV problem into small on-device verification tasks, and distribute them to on-device verifiers for distributed execution. From requirement and topology to DVNet. The planner first leverages the automata theory [[8]](#automata-theory) to take the product of the regular expression path_exp in the requirement and the topology, and get a DAG called DVNet. A DVNet compactly represents all paths in the topology that match the pattern path_exp.The following picture gives the computed DVNet in our example. 
 
-<img src="/assets/images/Coral-DVNet.png" alt="Coral-DVNet" width="523" height="215"/>
+<img src="/assets/images/Coral-DVNet.png" alt="Coral-DVNet" width="523" height="400"/>
 
 Note the devices in the network and the nodes in DVNet have a 1-to-many mapping. For each node u in DVNet, we assign a unique identifier, which is a concatenation of u.dev and an integer. For example, device C in the network is mapped to two nodes C1 and C2 in DVNet, because the regular expression allows packets to reach D via [C,W,D] or [W,C,D].
 

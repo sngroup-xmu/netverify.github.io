@@ -11,21 +11,33 @@ There has been a long line of research on both data plane verification (DPV) and
 
 In this article, we propose Coral, a distributed, on-device DPV framework, to tackle the scalability challenge of DPV, allowing to achieve scalable DPV under various settings, with little overhead on commodity network devices.
 
-
-
 ## Issues of centralized DPV
 
 Existing tools use a centralized architecture, which lacks the scalability needed for deployment in large networks. Specifically, they use a centralized server to collect the data plane from each network device and verify the requirement. Such a design is unscalable in nature: (1) it requires a management network to provide reliable connections between the server and network devices, which is hard to build itself; (2) it introduces a long control path, which includes sending device data planes to the server, performing verification at the server, and sending corresponding action instructions from the server back to devices, leading to the slow response to network errors and finally affecting network availability; (3) the server becomes the performance bottleneck and the single point of failure of DPV tools, it is mainly because larger network requires verifiers with stronger operational capability. To scale up DPV, Libra [[1]](#Libra) partitions the data plane into disjoint packet spaces and uses MapReduce to achieve parallel verification in a cluster; Azure RCDC [[2]](#RCDC) partitions the data plane by device to verify the availability of all shortest paths with a higher level of parallelization in a cluster. However, both are still centralized designs with the limitations above, and RCDC can only verify that particular requirement.
 
-![A (cluster of) server(s) as a centralized verifier](C:\Users\31139\Desktop\centralizedDPV.png)
+![A (C:\Users\31139\assets\images\centralizedDPV.png) server(s) as a centralized verifier](../assets/images/centralizedDPV.png)
 
 ## The challenges of scaling DPV via distributed
 
-TODO
+As shown above, there is a huge shortcoming in scalability for centralized DPV tools when facing large networks. To this end,  we embrace a distributed design to circumvent the inherent scalability bottleneck of centralized design. Unfortunately, the choice of scaling DPV via distributed, on-device computation comes with challenges below:
+
+* How to specify the requirements to check? Most DPV tools only check a fixed set of requirements (e.g., reachability, loop-free and blackhole-free).
+* How to make the on-device tasks lightweight? Switches or routers have low-end CPU, and already run multiple protocols (e.g., SNMP, OSPF and BGP).
+* How to make devices exchange results correctly and efficiently? Distributed computing has its own issues (e.g., safety, liveness and consistency).
 
 ## Design(TBD)
 
-TODO
+**A declarative requirement specification language. **
+
+This language abstracts a requirement as a tuple of packet space, ingress devices and behavior, where a behavior is a predicate on whether the paths of packets match a pattern specified in a regular expression. This design allows operators to flexibly specify common requirements studied by existing DPV tools (*e.g.*, reachability, blackhole free, waypoint and isolation), and more advanced, yet understudied requirements (*e.g.*, multicast, anycast, no-redundant-delivery and all-shortest-path availability).
+
+**A verification planner .** Given a requirement, the planner decides the tasks to be executed on devices to verify it. The core challenge is how to make these tasks lightweight, because commodity network devices have little computation power to spare. To this end, the planner first uses the requirement
+
+and the network topology to compute a novel data structure called *DVNet*, a DAG compactly representing all paths in the network that satisfies the path patterns in the requirement. It then transforms the DPV problem into a counting problem on *DVNet*. The latter can be solved by a reverse topological
+
+traversal along *DVNet*. In its turn, each node in *DVNet* takes as input the data plane of its corresponding device and the counting results of its downstream nodes to compute for different packets, how many copies of them can be delivered to the intended destinations along downstream paths in *DVNet*. This traversal can be naturally decomposed into on-device counting tasks, one for each node in *DVNet*, and distributed to the corresponding network devices by the planner. We design optimizations to compute the minimal counting information of each node in *DVNet* to send to its upstream neighbors, and prove that for requirements such as all-shortest-path availability, their minimal counting information is an empty set, *i.e.*, the local contracts in RCDC [39] is a special case of Coral.
+
+**On-device verifiers equipped with a DVM protocol.** On-device verifiers execute the on-device counting tasks specified by the planner and share their results with neighbor devices to collaboratively verify the requirements. In particular, we are inspired by vector-based routing protocols [53, 54] to design a DVM protocol that specifies how neighboring on device verifiers communicate counting results in an efficient, correct way.
 
 ## Example 
 

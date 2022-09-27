@@ -33,6 +33,10 @@ To demonstrate the basic workflow of Coral, let's take a look at a concrete exam
 
 <img src="/assets/images/Coral-topology.png" alt="Coral-Topology" width="523" height="215"/>
 
+Firstly,the operater use a declarative language to specify verification requirements. The following picture gives the program of the example requirement, where loop_free is a shortcut in the language for a regular expression that accepts no path with a loop. It specifies that when any p destined to 10.0.0.0/23 enters from S, at least 1 copy of it will be delivered to D along a simple path waypointing W.
+
+(dstIP = 10.0.0.0/23, [S], S .* W .* D and loop_free, "exist >=1")
+
 ## Summary
 
 Current DPV tools employ a centralized architecture, however, this design faces scalability issues in large networks, such as maintaining a reliable, low-latency management network, performance bottleneck, and single point of failure. To tackle the scalability challenge of DPV, we design Coral, a distributed DPV framework to achieve scalable DPV by decomposing verification to lightweight on-device counting tasks. Coral consists of (1) a declarative specification language,(2) a verification planner decomposing global verification into lightweight on-device counting tasks, and (3) a distributed verification messaging(DVM) protocol that enables efficient and distributed computing among on-device verifiers. Extensive experiments demonstrate the benefits and feasibility of Coral. 

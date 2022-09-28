@@ -47,12 +47,13 @@ To demonstrate the basic workflow of Coral, let's take a look at a concrete exam
 
 * Requirement Specification 
 
-The operater use a declarative language to specify verification requirements. The program of the example requirement is described as:
+The operator uses a declarative language to specify verification requirements. The program of the example requirement is described as:
 (dstIP = 10.0.0.0/23, [S], S .* W .* D and loop_free, "exist >=1")
 ,where loop_free is a shortcut in the language for a regular expression that accepts no path with a loop. It specifies that when any p destined to 10.0.0.0/23 enters from S, at least 1 copy of it will be delivered to D along a simple path waypointing W.
 
-The network data plane are as follows:
-<img src="/assets/images/Coral-dataplane.png" alt="Coral-Topology" width="523" height="500"/>
+The network data plane is described as follows:
+
+<img src="/assets/images/Coral-dataplane.png" alt="Coral-Topology" width="300" height="330"/>
 
 * From Requirement and Topology to DVNet
 

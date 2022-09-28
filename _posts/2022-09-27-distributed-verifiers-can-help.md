@@ -29,9 +29,9 @@ As shown above, there is a huge shortcoming in scalability for centralized DPV t
 
 ## Basic design
 
-**A declarative requirement specification language.** This language abstracts a requirement as a tuple of packet space, ingress devices and behavior, where a behavior is a predicate on whether the paths of packets match a pattern specified in a regular expression. This design allows operators to flexibly specify common requirements studied by existing DPV tools (*e.g.*, reachability, blackhole free, waypoint and isolation), and more advanced, yet understudied requirements (*e.g.*, multicast, anycast, no-redundant-delivery and all-shortest-path availability).
+**A declarative requirement specification language.** Operators specify verification requirements using a declarative language. A requirement is specified as a (packet_space, ingress_set, behavior) tuple. The semantic means: for each packet p in packet_space entering the network from any device in ingress_set, the traces of p in all its universes must satisfy the constraint specified in behavior, which is specified as a tuple of a regular expression of valid paths path_exp and a match operator. To specify behaviors, we use the building block of (match_op, path_exp) entries. The basic syntax provides two match_op operators. One is exist count_exp, which requires that in each universe, the number of traces matching path_exp (a regular expression over the set of devices) satisfies count_exp. The other operator is equal, which specifies an equivalence behavior: the union of universes for each p in pkt_space from each ingress in ingress_set must be equal to the set of all possible paths that match path_exp [39]. Finally, behaviors can also be specified as conjunctions, disjunctions, and negations of these (match_opi, path_exp) pairs.
 
-**A verification planner .** Given a requirement, the planner decides the tasks to be executed on devices to verify it. The core challenge is how to make these tasks lightweight, because commodity network devices have little computation power to spare. To this end, the planner first uses the requirement and the network topology to compute a novel data structure called *DVNet*, a DAG compactly representing all paths in the network that satisfies the path patterns in the requirement. It then transforms the DPV problem into a counting problem on *DVNet*. The latter can be solved by a reverse topological traversal along *DVNet*. In its turn, each node in *DVNet* takes as input the data plane of its corresponding device and the counting results of its downstream nodes to compute for different packets, how many copies of them can be delivered to the intended destinations along downstream paths in *DVNet*. This traversal can be naturally decomposed into on-device counting tasks, one for each node in *DVNet*, and distributed to the corresponding network devices by the planner. We design optimizations to compute the minimal counting information of each node in *DVNet* to send to its upstream neighbors, and prove that for requirements such as all-shortest-path availability, their minimal counting information is an empty set, *i.e.*, the local contracts in RCDC [39] is a special case of Coral.
+**A verification planner .** Given a requirement, the planner decides the tasks to be executed on devices to verify it. It first uses the requirement and the network topology to compute a novel data structure called *DVNet*, a DAG compactly representing all paths in the network that satisfies the path patterns in the requirement. It then transforms the DPV problem into a counting problem on *DVNet*. The latter can be solved by a reverse topological traversal along *DVNet*. In its turn, each node in *DVNet* takes as input the data plane of its corresponding device and the counting results of its downstream nodes to compute for different packets, how many copies of them can be delivered to the intended destinations along downstream paths in *DVNet*. This traversal can be naturally decomposed into on-device counting tasks, one for each node in *DVNet*, and distributed to the corresponding network devices by the planner. We design optimizations to compute the minimal counting information of each node in *DVNet* to send to its upstream neighbors, and prove that for requirements such as all-shortest-path availability, their minimal counting information is an empty set, *i.e.*, the local contracts in RCDC is a special case of Coral.
 
 **On-device verifiers equipped with a DVM protocol.**  The DVM protocol specifies how on-device verifiers share their counting results with neighbors in an efficient, correct way, to collaboratively verify a requirement.  Given a device *X*, its on-device verififier stores two types of information: (1) a table of local equivalence classes (LECs), where an LEC is a set of packets whose actions are identical at *X*; and (2) a counting information base (CIB), a table of (*packet space, count*) mapping of each *X.node* in *DVNet*. Devices share their CIB with the devices of upstream neighbors following the opposite direction of links in *DVNet*, using UPDATE messages. Given device *X*, when it receives an UPDATE message or its own data plane is updated (*e.g.*, a forwarding rule insertion), *X* updates its own CIB with the latest downstream counting results and the data plane in this message, and sends only the delta (*i.e.*, the changed (*packet space, count*) mapping) to its upstream neighbors. If *X* has an internal event (*e.g.*, rule update or link down), it is handled in a similar way.
 
@@ -43,9 +43,11 @@ To demonstrate the basic workflow of Coral, let's take a look at a concrete exam
 
 * Requirement Specification 
 
-The operator uses a declarative language to specify verification requirements. The program of the example requirement is described as:
-(dstIP = 10.0.0.0/23, [S], S .* W .* D and loop_free, "exist >=1")
-,where loop_free is a shortcut in the language for a regular expression that accepts no path with a loop. It specifies that when any p destined to 10.0.0.0/23 enters from S, at least 1 copy of it will be delivered to D along a simple path waypointing W.
+The example requirement is described as:
+
+(dstIP = 10.0.0.0/23, [S], S .* W .* D and loop_free, "exist >=1") 
+
+using our declarative requirement specification language, where loop_free is a shortcut in the language for a regular expression that accepts no path with a loop. It specifies that when any p destined to 10.0.0.0/23 enters from S, at least 1 copy of it will be delivered to D along a simple path waypointing W.
 
 The network data plane is described as follows:
 
@@ -53,7 +55,7 @@ The network data plane is described as follows:
 
 * From Requirement and Topology to DVNet
 
-Given a requirement, the Coral planner employs a data structure called DVNet to decompose the DPV problem into small on-device verification tasks, and distribute them to on-device verifiers for distributed execution. From requirement and topology to DVNet. The planner first leverages the automata theory [[8]](#automata-theory) to take the product of the regular expression path_exp in the requirement and the topology, and get a DAG called DVNet. A DVNet compactly represents all paths in the topology that match the pattern path_exp.The following picture gives the computed DVNet in our example. 
+Given a requirement, the Coral planner then employs a DVNet to decompose the DPV problem into small on-device verification tasks, and distribute them to on-device verifiers for distributed execution. The planner first leverages the automata theory [[8]](#automata-theory) to take the product of the regular expression path_exp in the requirement and the topology, and get a DVNet. The following picture gives the computed DVNet in our example. 
 
 <img src="../assets/images/Coral-DVNet.png" alt="Coral-DVNet" width="523" height="360"/>
 
@@ -89,8 +91,7 @@ There's a lot more to learn about this topic, and in future blog posts, we will 
 
  <a name="Libra"></a>[1] H. Zeng, S. Zhang, F. Ye, V. Jeyakumar, M. Ju, J. Liu, N. McKeown, and A. Vahdat. Libra: Divide and conquer to verify forwarding tables in huge networks. In 11th USENIX Symposium on Networked Systems Design and Implementation (NSDI), pages 87–99, 2014.
 
-<a name="RCDC"></a>[2] K. Jayaraman, N. Bjørner, J. Padhye, A. Agrawal, A. Bhargava, P.-A. C. Bissonnette, S. Foster, A. Helwer, M. Kasten, I. Lee, et al.
-Validating datacenters at scale. In Proceedings of the ACM Special Interest Group on Data Communication, pages 200–213. 2019.
+<a name="RCDC"></a>[2] K. Jayaraman, N. Bjørner, J. Padhye, A. Agrawal, A. Bhargava, P.-A. C. Bissonnette, S. Foster, A. Helwer, M. Kasten, I. Lee, et al. Validating datacenters at scale. In Proceedings of the ACM Special Interest Group on Data Communication, pages 200–213. 2019.
 
 <a name="middleboxes"></a>[3] Aurojit Panda, Ori Lahav, Katerina Argyraki, Mooly Sagiv, and Scott Shenker. Verifying reachability in networks with mutable datapaths. In 14th USENIX symposium on networked systems design and implementation(NSDI), pages 699–718, 2017.
 		

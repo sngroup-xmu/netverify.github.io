@@ -59,7 +59,7 @@ The network data plane is described as follows:
 
 Given a requirement, the Coral planner employs a data structure called DVNet to decompose the DPV problem into small on-device verification tasks, and distribute them to on-device verifiers for distributed execution. From requirement and topology to DVNet. The planner first leverages the automata theory [[8]](#automata-theory) to take the product of the regular expression path_exp in the requirement and the topology, and get a DAG called DVNet. A DVNet compactly represents all paths in the topology that match the pattern path_exp.The following picture gives the computed DVNet in our example. 
 
-<img src="/assets/images/Coral-DVNet.png" alt="Coral-DVNet" width="523" height="400"/>
+<img src="/assets/images/Coral-DVNet.png" alt="Coral-DVNet" width="523" height="380"/>
 
 Note the devices in the network and the nodes in DVNet have a 1-to-many mapping. For each node u in DVNet, we assign a unique identifier, which is a concatenation of u.dev and an integer. For example, device C in the network is mapped to two nodes C1 and C2 in DVNet, because the regular expression allows packets to reach D via [C,W,D] or [W,C,D].
 
@@ -67,7 +67,7 @@ Note the devices in the network and the nodes in DVNet have a 1-to-many mapping.
 
 Each node u takes as input (1) the data plane of u.dev and (2) for different p in packet_space, the number of copies that can be delivered from each of u’s downstream neighbors to the destination, along DVNet, by the network data plane, to compute the number of copies that can be delivered from u to the destination along DVNet by the network data plane. In the end, the source node of DVNet computes the final result of the counting problem.The following picture illustrates the algorithm:
 
-<img src="/assets/images/Coral-Couting.png" alt="Coral-Couting" width="523" height="400"/>
+<img src="/assets/images/Coral-Couting.png" alt="Coral-Couting" width="523" height="380"/>
 
 For simplicity, we use P1,P2,P3 to represent the packet spaces with destination IP prefixes of 10.0.0.0/23, 10.0.0.0/24, and 10.0.1.0/24, respectively.Each u in DVNet initializes a packet space → count mapping, (P1,0), except for D1 that initializes the mapping as (P1,1) (i.e., one copy of any packet in P1 will be sent to the correct external ports). Afterwards, we traverse all the nodes in DVNet in reverse topological order to update their mappings. Each node u checks the data plane of u.dev to find the set of next-hop devices u.dev will forward P1 to. If the action of forwarding to this next-hop set is of ALL-type, the mapping at u can be updated by adding up the count of all downstream neighbors of u whose corresponding device belongs to the set of next-hops of u.dev for forwarding P1. For example, node C1 updates its mapping to (P1,1) because device C forwards to D, but node W2’s mapping is still (P1,0) because W does not forward P1 to D. Similarly, although W1 has two downstream neighbors C1 an D1, each with an updated mapping (P1,1). In its turn, we update its mapping to (P1,1) instead of (P1,2), because device W only forwards P1 to C, not D. In the end, the updated mapping of S1 [(P2, [0,1]), (P3,1)] reflects the final counting results, indicating that the data plane does not satisfy the requirements  in all universes. In other words, the network data plane is erroneous.
 

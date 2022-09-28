@@ -15,7 +15,9 @@ In this article, we propose Coral, a distributed, on-device DPV framework, to ta
 
 Existing tools use a centralized architecture, which lacks the scalability needed for deployment in large networks. Specifically, they use a centralized server to collect the data plane from each network device and verify the requirement. Such a design is unscalable in nature: (1) it requires a management network to provide reliable connections between the server and network devices, which is hard to build itself; (2) it introduces a long control path, which includes sending device data planes to the server, performing verification at the server, and sending corresponding action instructions from the server back to devices, leading to the slow response to network errors and finally affecting network availability; (3) the server becomes the performance bottleneck and the single point of failure of DPV tools, it is mainly because larger network requires verifiers with stronger operational capability. To scale up DPV, Libra [[1]](#Libra) partitions the data plane into disjoint packet spaces and uses MapReduce to achieve parallel verification in a cluster; Azure RCDC [[2]](#RCDC) partitions the data plane by device to verify the availability of all shortest paths with a higher level of parallelization in a cluster. However, both are still centralized designs with the limitations above, and RCDC can only verify that particular requirement.
 
-![A (C:\Users\31139\assets\images\centralizedDPV.png) server(s) as a centralized verifier](../assets/images/centralizedDPV.png)
+<img src="..\assets\images\centralizedDPV.png" alt="Coral-Topology" width="269" height="249"/>
+
+
 
 ## The challenges of scaling DPV via distributed
 
@@ -25,25 +27,19 @@ As shown above, there is a huge shortcoming in scalability for centralized DPV t
 * How to make the on-device tasks lightweight? Switches or routers have low-end CPU, and already run multiple protocols (e.g., SNMP, OSPF and BGP).
 * How to make devices exchange results correctly and efficiently? Distributed computing has its own issues (e.g., safety, liveness and consistency).
 
-## Design(TBD)
+## Basic design
 
-**A declarative requirement specification language. **
+**A declarative requirement specification language.** This language abstracts a requirement as a tuple of packet space, ingress devices and behavior, where a behavior is a predicate on whether the paths of packets match a pattern specified in a regular expression. This design allows operators to flexibly specify common requirements studied by existing DPV tools (*e.g.*, reachability, blackhole free, waypoint and isolation), and more advanced, yet understudied requirements (*e.g.*, multicast, anycast, no-redundant-delivery and all-shortest-path availability).
 
-This language abstracts a requirement as a tuple of packet space, ingress devices and behavior, where a behavior is a predicate on whether the paths of packets match a pattern specified in a regular expression. This design allows operators to flexibly specify common requirements studied by existing DPV tools (*e.g.*, reachability, blackhole free, waypoint and isolation), and more advanced, yet understudied requirements (*e.g.*, multicast, anycast, no-redundant-delivery and all-shortest-path availability).
+**A verification planner .** Given a requirement, the planner decides the tasks to be executed on devices to verify it. The core challenge is how to make these tasks lightweight, because commodity network devices have little computation power to spare. To this end, the planner first uses the requirement and the network topology to compute a novel data structure called *DVNet*, a DAG compactly representing all paths in the network that satisfies the path patterns in the requirement. It then transforms the DPV problem into a counting problem on *DVNet*. The latter can be solved by a reverse topological traversal along *DVNet*. In its turn, each node in *DVNet* takes as input the data plane of its corresponding device and the counting results of its downstream nodes to compute for different packets, how many copies of them can be delivered to the intended destinations along downstream paths in *DVNet*. This traversal can be naturally decomposed into on-device counting tasks, one for each node in *DVNet*, and distributed to the corresponding network devices by the planner. We design optimizations to compute the minimal counting information of each node in *DVNet* to send to its upstream neighbors, and prove that for requirements such as all-shortest-path availability, their minimal counting information is an empty set, *i.e.*, the local contracts in RCDC [39] is a special case of Coral.
 
-**A verification planner .** Given a requirement, the planner decides the tasks to be executed on devices to verify it. The core challenge is how to make these tasks lightweight, because commodity network devices have little computation power to spare. To this end, the planner first uses the requirement
-
-and the network topology to compute a novel data structure called *DVNet*, a DAG compactly representing all paths in the network that satisfies the path patterns in the requirement. It then transforms the DPV problem into a counting problem on *DVNet*. The latter can be solved by a reverse topological
-
-traversal along *DVNet*. In its turn, each node in *DVNet* takes as input the data plane of its corresponding device and the counting results of its downstream nodes to compute for different packets, how many copies of them can be delivered to the intended destinations along downstream paths in *DVNet*. This traversal can be naturally decomposed into on-device counting tasks, one for each node in *DVNet*, and distributed to the corresponding network devices by the planner. We design optimizations to compute the minimal counting information of each node in *DVNet* to send to its upstream neighbors, and prove that for requirements such as all-shortest-path availability, their minimal counting information is an empty set, *i.e.*, the local contracts in RCDC [39] is a special case of Coral.
-
-**On-device verifiers equipped with a DVM protocol.** On-device verifiers execute the on-device counting tasks specified by the planner and share their results with neighbor devices to collaboratively verify the requirements. In particular, we are inspired by vector-based routing protocols [53, 54] to design a DVM protocol that specifies how neighboring on device verifiers communicate counting results in an efficient, correct way.
+**On-device verifiers equipped with a DVM protocol.**  The DVM protocol specifies how on-device verifiers share their counting results with neighbors in an efficient, correct way, to collaboratively verify a requirement.  Given a device *X*, its on-device verififier stores two types of information: (1) a table of local equivalence classes (LECs), where an LEC is a set of packets whose actions are identical at *X*; and (2) a counting information base (CIB), a table of (*packet space, count*) mapping of each *X.node* in *DVNet*. Devices share their CIB with the devices of upstream neighbors following the opposite direction of links in *DVNet*, using UPDATE messages. Given device *X*, when it receives an UPDATE message or its own data plane is updated (*e.g.*, a forwarding rule insertion), *X* updates its own CIB with the latest downstream counting results and the data plane in this message, and sends only the delta (*i.e.*, the changed (*packet space, count*) mapping) to its upstream neighbors. If *X* has an internal event (*e.g.*, rule update or link down), it is handled in a similar way.
 
 ## Example 
 
 To demonstrate the basic workflow of Coral, let's take a look at a concrete example. We consider the network in the following picture and the requirement: all packets entering the network from S with a destination IP in 10.0.0.0/23 must be delivered to D via a simple path passing W.
 
-<img src="/assets/images/Coral-topology.png" alt="Coral-Topology" width="523" height="250"/>
+<img src="../assets/images/Coral-topology.png" alt="Coral-Topology" width="523" height="250"/>
 
 * Requirement Specification 
 
@@ -53,13 +49,13 @@ The operator uses a declarative language to specify verification requirements. T
 
 The network data plane is described as follows:
 
-<img src="/assets/images/Coral-dataplane.png" alt="Coral-Topology" width="300" height="330"/>
+<img src="../assets/images/Coral-dataplane.png" alt="Coral-Topology" width="300" height="330"/>
 
 * From Requirement and Topology to DVNet
 
 Given a requirement, the Coral planner employs a data structure called DVNet to decompose the DPV problem into small on-device verification tasks, and distribute them to on-device verifiers for distributed execution. From requirement and topology to DVNet. The planner first leverages the automata theory [[8]](#automata-theory) to take the product of the regular expression path_exp in the requirement and the topology, and get a DAG called DVNet. A DVNet compactly represents all paths in the topology that match the pattern path_exp.The following picture gives the computed DVNet in our example. 
 
-<img src="/assets/images/Coral-DVNet.png" alt="Coral-DVNet" width="523" height="360"/>
+<img src="../assets/images/Coral-DVNet.png" alt="Coral-DVNet" width="523" height="360"/>
 
 Note the devices in the network and the nodes in DVNet have a 1-to-many mapping. For each node u in DVNet, we assign a unique identifier, which is a concatenation of u.dev and an integer. For example, device C in the network is mapped to two nodes C1 and C2 in DVNet, because the regular expression allows packets to reach D via [C,W,D] or [W,C,D].
 
@@ -67,7 +63,7 @@ Note the devices in the network and the nodes in DVNet have a 1-to-many mapping.
 
 Each node u takes as input (1) the data plane of u.dev and (2) for different p in packet_space, the number of copies that can be delivered from each of u’s downstream neighbors to the destination, along DVNet, by the network data plane, to compute the number of copies that can be delivered from u to the destination along DVNet by the network data plane. In the end, the source node of DVNet computes the final result of the counting problem.The following picture illustrates the algorithm:
 
-<img src="/assets/images/Coral-Couting.png" alt="Coral-Couting" width="523" height="360"/>
+<img src="../assets/images/Coral-Couting.png" alt="Coral-Couting" width="523" height="360"/>
 
 For simplicity, we use P1,P2,P3 to represent the packet spaces with destination IP prefixes of 10.0.0.0/23, 10.0.0.0/24, and 10.0.1.0/24, respectively.Each u in DVNet initializes a packet space → count mapping, (P1,0), except for D1 that initializes the mapping as (P1,1) (i.e., one copy of any packet in P1 will be sent to the correct external ports). Afterwards, we traverse all the nodes in DVNet in reverse topological order to update their mappings. Each node u checks the data plane of u.dev to find the set of next-hop devices u.dev will forward P1 to. If the action of forwarding to this next-hop set is of ALL-type, the mapping at u can be updated by adding up the count of all downstream neighbors of u whose corresponding device belongs to the set of next-hops of u.dev for forwarding P1. For example, node C1 updates its mapping to (P1,1) because device C forwards to D, but node W2’s mapping is still (P1,0) because W does not forward P1 to D. Similarly, although W1 has two downstream neighbors C1 an D1, each with an updated mapping (P1,1). In its turn, we update its mapping to (P1,1) instead of (P1,2), because device W only forwards P1 to C, not D. In the end, the updated mapping of S1 [(P2, [0,1]), (P3,1)] reflects the final counting results, indicating that the data plane does not satisfy the requirements  in all universes. In other words, the network data plane is erroneous.
 
@@ -75,18 +71,18 @@ For simplicity, we use P1,P2,P3 to represent the packet spaces with destination 
 
 Consider a scenario, where B updates its data plane to forward P1 to W, instead of to C. The data plane will be updated to：
 
-<img src="/assets/images/Coral-update-dataplane.png" alt="Coral-update-dataplane" width="300" height="330"/>
+<img src="../assets/images/Coral-update-dataplane.png" alt="Coral-update-dataplane" width="300" height="330"/>
 
 The update process is as follows:
 
-<img src="/assets/images/Coral-update.png" alt="Coral-update" width="523" height="360"/>
+<img src="../assets/images/Coral-update.png" alt="Coral-update" width="523" height="360"/>
 
 In this case, device B locally updates the task results of B1 and B2 to [(P1,1)] and [(P1,0)], respectively, and sends corresponding updates to the devices of their upstream neighbors, i.e., [(P1,1)] sent to A following the opposite of (A1,B1) and [(P1,0)] sent to W following the opposite of (W3,B2). Upon receiving the update, W does not need to update its mapping for node W3, because W does not forward any packet to B. As such, W does not need to send any update to A along the opposite of (A1,W3). In contrast, A needs to update its task result for node A1 to [(P1,1)] because (1) no matter whether A forwards packets in P2 to B or W, 1 copy of each packet will be sent to D, and (2) P2 ∪P3 = P1. After updating its local result, A sends the update to S along the opposite of (S1,A1). Finally, S updates its local result for S1 to [(P1,1)], i.e., the requirement is satisfied after the update.
 
 ## Summary
 
-Current DPV tools employ a centralized architecture, however, this design faces scalability issues in large networks, such as maintaining a reliable, low-latency management network, performance bottleneck, and single point of failure. To tackle the scalability challenge of DPV, we design Coral, a distributed DPV framework to achieve scalable DPV by decomposing verification to lightweight on-device counting tasks. Coral consists of (1) a declarative specification language,(2) a verification planner decomposing global verification into lightweight on-device counting tasks, and (3) a distributed verification messaging(DVM) protocol that enables efficient and distributed computing among on-device verifiers. Extensive experiments demonstrate the benefits and feasibility of Coral. 
-		
+Current DPV tools employ a centralized architecture, however, this design faces scalability issues in large networks. To tackle the scalability challenge of DPV, we design Coral, a distributed DPV framework to achieve scalable DPV by decomposing verification to lightweight on-device counting tasks. Coral consists of (1) a declarative specification language,(2) a verification planner decomposing global verification into lightweight on-device counting tasks, and (3) a distributed verification messaging(DVM) protocol that enables efficient and distributed computing among on-device verifiers. 
+
 There's a lot more to learn about this topic, and in future blog posts, we will explore some of them. (1)Some studies investigate the verification of stateful DP (e.g., middleboxes)[[3]](#middleboxes) and programmable DP (e.g., P4 [[4]](#P4) ) . Studying how to extend Coral to verify stateful and programmable DP would be an interesting future work. (2) Coral chooses BDD [[5]](#BDD) to represent packets for its efficiency. Recent data structures (e.g.,ddNF [[6]](#ddNF) and PEC [[7]](#PEC)) may have better performance and benefit Coral. We leave this as future work.
 
 ## References

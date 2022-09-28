@@ -71,6 +71,17 @@ Each node u takes as input (1) the data plane of u.dev and (2) for different p i
 
 For simplicity, we use P1,P2,P3 to represent the packet spaces with destination IP prefixes of 10.0.0.0/23, 10.0.0.0/24, and 10.0.1.0/24, respectively.Each u in DVNet initializes a packet space → count mapping, (P1,0), except for D1 that initializes the mapping as (P1,1) (i.e., one copy of any packet in P1 will be sent to the correct external ports). Afterwards, we traverse all the nodes in DVNet in reverse topological order to update their mappings. Each node u checks the data plane of u.dev to find the set of next-hop devices u.dev will forward P1 to. If the action of forwarding to this next-hop set is of ALL-type, the mapping at u can be updated by adding up the count of all downstream neighbors of u whose corresponding device belongs to the set of next-hops of u.dev for forwarding P1. For example, node C1 updates its mapping to (P1,1) because device C forwards to D, but node W2’s mapping is still (P1,0) because W does not forward P1 to D. Similarly, although W1 has two downstream neighbors C1 an D1, each with an updated mapping (P1,1). In its turn, we update its mapping to (P1,1) instead of (P1,2), because device W only forwards P1 to C, not D. In the end, the updated mapping of S1 [(P2, [0,1]), (P3,1)] reflects the final counting results, indicating that the data plane does not satisfy the requirements  in all universes. In other words, the network data plane is erroneous.
 
+* Distributed, Event-Driven, Verification using DVM Protocol
+
+Consider a scenario, where B updates its data plane to forward P1 to W, instead of to C. The data plane will be updated to：
+
+<img src="/assets/images/Coral-update-dataplane.png" alt="Coral-update-dataplane" width="300" height="330"/>
+
+The update process is as follows:
+
+<img src="/assets/images/Coral-update.png" alt="Coral-update" width="523" height="380"/>
+
+In this case, device B locally updates the task results of B1 and B2 to [(P1,1)] and [(P1,0)], respectively, and sends corresponding updates to the devices of their upstream neighbors, i.e., [(P1,1)] sent to A following the opposite of (A1,B1) and [(P1,0)] sent to W following the opposite of (W3,B2). Upon receiving the update, W does not need to update its mapping for node W3, because W does not forward any packet to B. As such, W does not need to send any update to A along the opposite of (A1,W3). In contrast, A needs to update its task result for node A1 to [(P1,1)] because (1) no matter whether A forwards packets in P2 to B or W, 1 copy of each packet will be sent to D, and (2) P2 ∪P3 = P1. After updating its local result, A sends the update to S along the opposite of (S1,A1). Finally, S updates its local result for S1 to [(P1,1)], i.e., the requirement is satisfied after the update.
 
 ## Summary
 

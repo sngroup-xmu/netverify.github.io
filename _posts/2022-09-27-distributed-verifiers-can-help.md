@@ -7,27 +7,42 @@ image:
 tags: []
 ---
 
-There has been a long line of research on both data plane verification (DPV) and control plane verification (CPV). In this work, we mainly focus on data plane verification, because data plane is the ground truth of network, in other words,  it can detect a wider range of network errors by checking the actual data plane at the network devices. However, current data plane verification tools employ a centralized architecture, where a server collects the data planes of all devices and verifies them.  This design faces scalability issues in large networks, such as maintaining a reliable, low-latency management network, performance bottleneck and single point of failure. 
+Unlike control plane verification, data plane is the ground truth of network, in other words,  it can detect a wider range of network errors by checking the actual data plane at the network devices. We highly appraise the performance of state-of-art data plane verification tool (e.g., APkeep) that can  achieve incremental verification times of tens of microseconds per rule update. However, current data plane verification tools employ a centralized architecture, where a server collects the data planes of all devices and verifies them.  This design faces scalability issues in large networks, such as maintaining a reliable, low-latency management network, performance bottleneck and single point of failure. As a result, to squeeze incremental performance improvements out of centralized DPV, researchers may pay a huge amount of time and money on validation algorithm and a cluster of verifiers with stronger operational capability.
 
-In this article, we propose Coral, a distributed, on-device DPV framework, to tackle the scalability challenge of DPV, allowing to achieve scalable DPV under various settings, with little overhead on commodity network devices.
+In this article, we propose a distributed, on-device DPV framework named Coral to tackle the scalability challenge of DPV, allowing to achieve scalable DPV under various settings, with little overhead on commodity network devices.
 
-## Issues of centralized DPV
+## Issues of centralized DPV architecture
 
-Existing tools use a centralized architecture, which lacks the scalability needed for deployment in large networks. Specifically, they use a centralized server to collect the data plane from each network device and verify the requirement. Such a design is unscalable in nature: (1) it requires a management network to provide reliable connections between the server and network devices, which is hard to build itself; (2) it introduces a long control path, which includes sending device data planes to the server, performing verification at the server, and sending corresponding action instructions from the server back to devices, leading to the slow response to network errors and finally affecting network availability; (3) the server becomes the performance bottleneck and the single point of failure of DPV tools, it is mainly because larger network requires verifiers with stronger operational capability. To scale up DPV, Libra [[1]](#Libra) partitions the data plane into disjoint packet spaces and uses MapReduce to achieve parallel verification in a cluster; Azure RCDC [[2]](#RCDC) partitions the data plane by device to verify the availability of all shortest paths with a higher level of parallelization in a cluster. However, both are still centralized designs with the limitations above, and RCDC can only verify that particular requirement.
+Existing tools use a centralized architecture, which lacks the scalability needed for deployment in large networks. Specifically, they use a centralized server to collect the data plane from each network device and verify the requirement. Such a design is unscalable in nature:
+
+* It requires a management network to provide reliable connections between the server and network devices, which is hard to build itself; 
+* It introduces a long control path, which includes sending device data planes to the server, performing verification at the server, and sending corresponding action instructions from the server back to devices, leading to the slow response to network errors and finally affecting network availability;
+* The server becomes the performance bottleneck and the single point of failure of DPV tools, it is mainly because larger network requires verifiers with stronger operational capability. 
+
+Our work is inspired by Azure RCDC [[2]](#RCDC). Though it is still centralized design, it takes the first step  by partitioning verification into local contracts of devices. To be specific, it gives an interesting analogy between such local contracts and program verification using annotation with inductive loop invariants, but stops at designing communication-free local contracts for the particular all-shortest-path availability requirement and validating them in parallel on a centralized cluster.
 
 <img src="..\assets\images\centralizedDPV.png" alt="Coral-Topology" width="269" height="249"/>
 
 
 
-## The challenges of scaling DPV via distributed
+## Pros&cons of scaling DPV via distributed, on-device computation
 
-As shown above, there is a huge shortcoming in scalability for centralized DPV tools when facing large networks. To this end,  we embrace a distributed design to circumvent the inherent scalability bottleneck of centralized design. Unfortunately, the choice of scaling DPV via distributed, on-device computation comes with challenges below:
+As shown above, there is a huge shortcoming in scalability for centralized DPV tools when facing large networks. To this end,  we embrace a distributed design to circumvent the inherent scalability bottleneck of centralized design. Obviously, there are huge benefits using this kind of architecture: 
 
-* How to specify the requirements to check? Most DPV tools only check a fixed set of requirements (e.g., reachability, loop-free and blackhole-free).
-* How to make the on-device tasks lightweight? Switches or routers have low-end CPU, and already run multiple protocols (e.g., SNMP, OSPF and BGP).
+* It provides with robust, distributed network behavior checking. Just like configuring routing protocols, network devices could verify the task automatically once being configured. We only have to re-configure devices when update the validation task.
+* There is no performance bottleneck for distributed, on-device computation because more network devices means more on-device verifiers.
+* There won't have single point of failure, because a network device is accompanied with an on-device verifier.  When a network device faces malfunction, a on-device verifier will report a network error accordingly.
+* Since we apply on-device computation, there is no need to send data plane information and the corresponding result through the management network and thus provide with rapid response to verification tasks.
+
+Unfortunately, the choice of scaling DPV via distributed, on-device computation comes with challenges below:
+
+* How to specify the requirements to check? Most DPV tools only check a fixed set of requirements (e.g., reachability, loop-free and blackhole-free);
+* How to make the on-device tasks lightweight? Switches or routers have low-end CPU, and already run multiple protocols (e.g., SNMP, OSPF and BGP);
 * How to make devices exchange results correctly and efficiently? Distributed computing has its own issues (e.g., safety, liveness and consistency).
 
 ## Basic design
+
+The key insight of Coral is DPV can be transformed into a counting problem on a directed acyclic graph, which can be naturally decomposed into lightweight tasks executed at network devices, enabling fast data plane checking in networks of various types and scales. 
 
 **A declarative requirement specification language.** Operators specify verification requirements using a declarative language. A requirement is specified as a (packet_space, ingress_set, behavior) tuple. The semantic means: for each packet p in packet_space entering the network from any device in ingress_set, the traces of p in all its universes must satisfy the constraint specified in behavior, which is specified as a tuple of a regular expression of valid paths path_exp and a match operator. To specify behaviors, we use the building block of (match_op, path_exp) entries. The basic syntax provides two match_op operators. One is exist count_exp, which requires that in each universe, the number of traces matching path_exp (a regular expression over the set of devices) satisfies count_exp. The other operator is equal, which specifies an equivalence behavior: the union of universes for each p in pkt_space from each ingress in ingress_set must be equal to the set of all possible paths that match path_exp. Finally, behaviors can also be specified as conjunctions, disjunctions, and negations of these (match_opi, path_exp) pairs.
 
@@ -88,8 +103,6 @@ Current DPV tools employ a centralized architecture, however, this design faces 
 There's a lot more to learn about this topic, and in future blog posts, we will explore some of them. (1)Some studies investigate the verification of stateful DP (e.g., middleboxes)[[3]](#middleboxes) and programmable DP (e.g., P4 [[4]](#P4) ) . Studying how to extend Coral to verify stateful and programmable DP would be an interesting future work. (2) Coral chooses BDD [[5]](#BDD) to represent packets for its efficiency. Recent data structures (e.g.,ddNF [[6]](#ddNF) and PEC [[7]](#PEC)) may have better performance and benefit Coral. We leave this as future work.
 
 ## References
-
- <a name="Libra"></a>[1] H. Zeng, S. Zhang, F. Ye, V. Jeyakumar, M. Ju, J. Liu, N. McKeown, and A. Vahdat. Libra: Divide and conquer to verify forwarding tables in huge networks. In 11th USENIX Symposium on Networked Systems Design and Implementation (NSDI), pages 87–99, 2014.
 
 <a name="RCDC"></a>[2] K. Jayaraman, N. Bjørner, J. Padhye, A. Agrawal, A. Bhargava, P.-A. C. Bissonnette, S. Foster, A. Helwer, M. Kasten, I. Lee, et al. Validating datacenters at scale. In Proceedings of the ACM Special Interest Group on Data Communication, pages 200–213. 2019.
 

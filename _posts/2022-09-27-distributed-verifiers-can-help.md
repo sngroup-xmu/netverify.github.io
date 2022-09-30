@@ -42,11 +42,13 @@ Unfortunately, the choice of scaling DPV via distributed, on-device computation 
 
 ## Basic design
 
-The key insight of Coral is DPV can be transformed into a counting problem on a directed acyclic graph, which can be naturally decomposed into lightweight tasks executed at network devices, enabling fast data plane checking in networks of various types and scales. Figure below gives the architecture and basic workflow of Coral, which consists of three novel components:
+The key insight of Coral is DPV can be transformed into a counting problem on a directed acyclic graph, which can be naturally decomposed into lightweight tasks executed at network devices, enabling fast data plane checking in networks of various types and scales. Figure below gives the architecture and basic workflow of Coral.
 
 <img src="../assets/images/coral-architecture.png" alt="Coral-Topology" width="528" height="241"/>
 
+Operators first specify the verification requirement which contains a tuple of packet space, ingress devices and behavior. This design allows us to flexibly express common requirements like reachability, blackhole free, waypoint, and more advanced, yet understudied requirements (*e.g.*, multicast, anycast, no-redundant-delivery and all-shortest-path availability). Coral then takes as input the verification requirement and the network topology to compute a DVNet,  which compactly representing all paths in the network that satisfies the path patterns in the requirement. In this turn, a  DPV problem is transformed into a counting problem on DVNet. In dealing with the counting problem, , each node in DVNet uses the data plane of its corresponding device and the counting results of its downstream nodes to compute for different packets, how many copies of them can be delivered to the intended destinations along downstream paths in DVNet. This traversal can be naturally decomposed into on-device counting tasks, one for each node in DVNet, and distributed to the corresponding network devices by the planner. And finally, on-device verifiers execute the on-device counting tasks specified by the planner and share their results with neighbor devices based on the DV protocol to collaboratively verify the requirements. 
 
+Coral consistently achieves scalable DPV under various networks and DPV scenarios, i.e., verifying a real, large DC in less than 41 seconds while other tools need several minutes or even tens of hours, and up to 2354× speed up on 80% quantile of incremental verification, with little overhead on commodity network devices.
 
 ## Example 
 

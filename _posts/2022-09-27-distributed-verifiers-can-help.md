@@ -52,7 +52,7 @@ Coral consistently achieves scalable DPV under various networks and DPV scenario
 
 ## Example 
 
-To demonstrate the basic workflow of Coral, let's take a look at a concrete example. We consider the network in the following picture and the requirement: all packets entering the network from S with a destination IP in 10.0.0.0/23 must be delivered to D via a simple path passing W.
+To demonstrate the basic workflow of Coral, let's take a look at a concrete example. We consider the network in the following picture and the requirement: all packets entering the network from S with a destination IP in 10.0.0.0/23 must be delivered to D via a simple path passing C.
 
 <img src="../assets/images/Coral-topo.png" alt="Coral-topo" width="523" height="210"/>
 
@@ -60,9 +60,9 @@ To demonstrate the basic workflow of Coral, let's take a look at a concrete exam
 
 The example requirement is described as:
 
-(dstIP = 10.0.0.0/23, [S], S .* W .* D and loop_free, "exist >=1") 
+(dstIP = 10.0.0.0/23, [S], S .* C .* D and loop_free, "exist >=1") 
 
-using our declarative requirement specification language, where loop_free is a shortcut in the language for a regular expression that accepts no path with a loop. It specifies that when any p destined to 10.0.0.0/23 enters from S, at least 1 copy of it will be delivered to D along a simple path waypointing W.
+using our declarative requirement specification language, where loop_free is a shortcut in the language for a regular expression that accepts no path with a loop. It specifies that when any p destined to 10.0.0.0/23 enters from S, at least 1 copy of it will be delivered to D along a simple path waypointing C.
 
 The network data plane is described as follows:
 

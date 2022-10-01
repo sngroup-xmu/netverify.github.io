@@ -96,11 +96,13 @@ The update process is as follows:
 
 In this case, device B locally updates the task results of B1 and B2 to [(P1,1)] and [(P1,0)], respectively, and sends corresponding updates to the devices of their upstream neighbors, i.e., [(P1,1)] sent to A following the opposite of (A1,B1) and [(P1,0)] sent to W following the opposite of (W3,B2). Upon receiving the update, W does not need to update its mapping for node W3, because W does not forward any packet to B. As such, W does not need to send any update to A along the opposite of (A1,W3). In contrast, A needs to update its task result for node A1 to [(P1,1)] because (1) no matter whether A forwards packets in P2 to B or W, 1 copy of each packet will be sent to D, and (2) P2 ∪P3 = P1. After updating its local result, A sends the update to S along the opposite of (S1,A1). Finally, S updates its local result for S1 to [(P1,1)], i.e., the requirement is satisfied after the update.
 
-## Summary
+## Future work
 
-Current DPV tools employ a centralized architecture, however, this design faces scalability issues in large networks. To tackle the scalability challenge of DPV, we design Coral, a distributed DPV framework to achieve scalable DPV by decomposing verification to lightweight on-device counting tasks. Coral consists of (1) a declarative specification language,(2) a verification planner decomposing global verification into lightweight on-device counting tasks, and (3) a distributed verification messaging(DVM) protocol that enables efficient and distributed computing among on-device verifiers. 
-
-There's a lot more to learn about this topic, and in future blog posts, we will explore some of them. (1)Some studies investigate the verification of stateful DP (e.g., middleboxes)[[3]](#middleboxes) and programmable DP (e.g., P4 [[4]](#P4) ) . Studying how to extend Coral to verify stateful and programmable DP would be an interesting future work. (2) Coral chooses BDD [[5]](#BDD) to represent packets for its efficiency. Recent data structures (e.g.,ddNF [[6]](#ddNF) and PEC [[7]](#PEC)) may have better performance and benefit Coral. We leave this as future work.
+There's a lot more to learn about this topic, and in future blog posts, we will explore some of them:
+* One concern is that DVNet may be too large to generate in large networks with a huge number of valid paths. If a network wants to verify requirements with a huge number of valid paths, Coral is inspired by BGP to verify them via divide-and-conquer: divide the network into partitions abstracted as one-big-switches, construct DVNet on this abstract network, and perform intra-/inter-partition distributed verifications.
+* Some studies investigate the verification of stateful DP (e.g., middleboxes)[[3]](#middleboxes) and programmable DP (e.g., P4 [[4]](#P4) ) . Studying how to extend Coral to verify stateful and programmable DP would be an interesting future work. 
+* Coral chooses BDD [[5]](#BDD) to represent packets for its efficiency. Recent data structures (e.g.,ddNF [[6]](#ddNF) and PEC [[7]](#PEC)) may have better performance and benefit Coral. We leave this as future work.
+*  Coral can be extended to distributedly monitor the performance of routes(e.g., latency, bandwidth and load balancing ratio). However,in a joint test with a major vendor, we find that doing so would introduce high computation overhead to commodity switches, most of which have low-end CPUs. As such, we limit the current scope of Coral to distributed DPV, and will study distributed monitoring in the future.
 
 ## References
 

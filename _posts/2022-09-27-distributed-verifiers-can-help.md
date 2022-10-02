@@ -72,15 +72,15 @@ The network data plane is described as follows:
 
 Given a requirement, the Coral planner then employs a DVNet to decompose the DPV problem into small on-device verification tasks, and distribute them to on-device verifiers for distributed execution. The planner first leverages the automata theory [[8]](#automata-theory) to take the product of the regular expression path_exp in the requirement and the topology, and get a DVNet. The following picture gives the computed DVNet in our example. 
 
-<img src="../assets/images/Coral-DVnet.png" alt="Coral-DVNet" width="523" height="360"/>
+<img src="../assets/images/Coral-DVnet.png" alt="Coral-DVNet" width="500" height="250"/>
 
 * From Verification in Network to Counting in DVNet
 
 Each node u takes as input (1) the data plane of u.dev and (2) for different p in packet_space, the number of copies that can be delivered from each of u’s downstream neighbors to the destination, along DVNet, by the network data plane, to compute the number of copies that can be delivered from u to the destination along DVNet by the network data plane. In the end, the source node of DVNet computes the final result of the counting problem.The following picture illustrates the algorithm:
 
-<img src="../assets/images/Coral-couting.png" alt="Coral-Couting" width="523" height="360"/>
+<img src="../assets/images/Coral-couting.png" alt="Coral-Couting" width="500" height="250"/>
 
-In the end, the updated mapping of S1[P,1]reflects the final counting results, indicating that the data plane satisfies the requirements in all universes. In other words, the network data plane is correct.
+In the end, the updated mapping of S1[P,1] reflects the final counting results, indicating that the data plane satisfies the requirements in all universes. In other words, the network data plane is correct.
 
 * Distributed, Event-Driven, Verification using DVM Protocol
 

@@ -19,7 +19,7 @@ Existing tools use a centralized architecture, which lacks the scalability neede
 * It introduces a long control path, which includes sending device data planes to the server, performing verification at the server, and sending corresponding action instructions from the server back to devices, leading to the slow response to network errors and finally affecting network availability;
 * The server becomes the performance bottleneck and the single point of failure of DPV tools, it is mainly because larger network requires verifiers with stronger operational capability. 
 
-Our work is inspired by Azure RCDC [[2]](#RCDC). Though it is still centralized design, it takes the first step  by partitioning verification into local contracts of devices. To be specific, it gives an interesting analogy between such local contracts and program verification using annotation with inductive loop invariants, but stops at designing communication-free local contracts for the particular all-shortest-path availability requirement and validating them in parallel on a centralized cluster.
+Our work is inspired by Azure RCDC [[1]](#RCDC). Though it is still centralized design, it takes the first step  by partitioning verification into local contracts of devices. To be specific, it gives an interesting analogy between such local contracts and program verification using annotation with inductive loop invariants, but stops at designing communication-free local contracts for the particular all-shortest-path availability requirement and validating them in parallel on a centralized cluster.
 
 <img src="..\assets\images\centralizedDPV.png" alt="Coral-Topology" width="269" height="249"/>
 
@@ -70,7 +70,7 @@ The network data plane is described as follows:
 
 * From Requirement and Topology to DVNet
 
-Given a requirement, the Coral planner then employs a DVNet to decompose the DPV problem into small on-device verification tasks, and distribute them to on-device verifiers for distributed execution. The planner first leverages the automata theory [[8]](#automata-theory) to take the product of the regular expression path_exp in the requirement and the topology, and get a DVNet. The following picture gives the computed DVNet in our example. 
+Given a requirement, the Coral planner then employs a DVNet to decompose the DPV problem into small on-device verification tasks, and distribute them to on-device verifiers for distributed execution. The planner first leverages the automata theory [[2]](#automata-theory) to take the product of the regular expression path_exp in the requirement and the topology, and get a DVNet. The following picture gives the computed DVNet in our example. 
 
 <img src="../assets/images/Coral-DVnet.png" alt="Coral-DVNet" width="500" height="250"/>
 
@@ -104,7 +104,9 @@ There's a lot more to learn about this topic, and in future blog posts, we will 
 
 ## References
 
-<a name="RCDC"></a>[2] K. Jayaraman, N. Bjørner, J. Padhye, A. Agrawal, A. Bhargava, P.-A. C. Bissonnette, S. Foster, A. Helwer, M. Kasten, I. Lee, et al. Validating datacenters at scale. In Proceedings of the ACM Special Interest Group on Data Communication, pages 200–213. 2019.
+<a name="RCDC"></a>[1] K. Jayaraman, N. Bjørner, J. Padhye, A. Agrawal, A. Bhargava, P.-A. C. Bissonnette, S. Foster, A. Helwer, M. Kasten, I. Lee, et al. Validating datacenters at scale. In Proceedings of the ACM Special Interest Group on Data Communication, pages 200–213. 2019.
+
+<a name="automata-theory"></a>[2] Harry R Lewis and Christos H Papadimitriou. Elements of the theory of computation. ACM SIGACT News, 29(3):62–78, 1998.
 
 <a name="middleboxes"></a>[3] Aurojit Panda, Ori Lahav, Katerina Argyraki, Mooly Sagiv, and Scott Shenker. Verifying reachability in networks with mutable datapaths. In 14th USENIX symposium on networked systems design and implementation(NSDI), pages 699–718, 2017.
 		
@@ -116,5 +118,5 @@ There's a lot more to learn about this topic, and in future blog posts, we will 
 		
 <a name="PEC"></a>[7] Alex Horn, Ali Kheradmand, and Mukul R Prasad. A precise and expressive lattice-theoretical framework for efficient network verification. In 2019 IEEE 27th In- ternational Conference on Network Protocols (ICNP),pages 1–12. IEEE, 2019.
 
-<a name="automata-theory"></a>[8] Harry R Lewis and Christos H Papadimitriou. Elements of the theory of computation. ACM SIGACT News, 29(3):62–78, 1998.
+
 

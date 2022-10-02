@@ -86,13 +86,13 @@ In the end, the updated mapping of S1[P,1] reflects the final counting results, 
 
 Consider a scenario, where C updates its data plane to drop packets instead of forwarding P to D. The data plane will be updated to：
 
-<img src="../assets/images/Coral-Update-dataplane.png" alt="Coral-update-dataplane" width="400" height="366"/>
+<img src="../assets/images/Coral-update-dataplane.png" alt="Coral-update-dataplane" width="400" height="366"/>
 
 The update process is as follows:
 
-<img src="../assets/images/Coral-update.png" alt="Coral-update" width="523" height="360"/>
+<img src="../assets/images/Coral-update.png" alt="Coral-update" width="500" height="250"/>
 
-In this case, device B locally updates the task results of B1 and B2 to [(P1,1)] and [(P1,0)], respectively, and sends corresponding updates to the devices of their upstream neighbors, i.e., [(P1,1)] sent to A following the opposite of (A1,B1) and [(P1,0)] sent to W following the opposite of (W3,B2). Upon receiving the update, W does not need to update its mapping for node W3, because W does not forward any packet to B. As such, W does not need to send any update to A along the opposite of (A1,W3). In contrast, A needs to update its task result for node A1 to [(P1,1)] because (1) no matter whether A forwards packets in P2 to B or W, 1 copy of each packet will be sent to D, and (2) P2 ∪P3 = P1. After updating its local result, A sends the update to S along the opposite of (S1,A1). Finally, S updates its local result for S1 to [(P1,1)], i.e., the requirement is satisfied after the update.
+In this case, device C locally updates the task results of C1 to [(P,0)], and sends corresponding updates to the devices of their upstream neighbors, i.e., [(P,0)] sent to A. Upon receiving the update, A needs to update its task result for node A1 to [(P,[0,1])]. Finally, S updates its local result for S1 to [(P,[0,1])], i.e., the requirement is not satisfied after the update.
 
 ## Future work
 

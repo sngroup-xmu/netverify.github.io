@@ -66,7 +66,7 @@ using our declarative requirement specification language, where loop_free is a s
 
 The network data plane is described as follows:
 
-<img src="../assets/images/Coral-Dataplane.png" alt="Coral-Dataplane" width="538" height="486"/>
+<img src="../assets/images/Coral-Dataplane.png" alt="Coral-Dataplane" width="400" height="366"/>
 
 * From Requirement and Topology to DVNet
 
